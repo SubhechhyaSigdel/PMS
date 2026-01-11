@@ -1,0 +1,50 @@
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException,status
+from sqlmodel import select
+from .. import models,schemas,rbac,database,utils,oauth2
+
+router=APIRouter(
+    prefix="/users",
+    tags=["users"]
+)
+
+@router.post("/",response_model=schemas.UserResponse)
+def create_user(db:database.SessionLocal, user_data:schemas.UserCreate, current_user:models.User=Depends(rbac.require_roles(["admin"]))):
+    user=db.exec(select(models.User).where(models.User.username == user_data.username)).first()
+
+    if user:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"User with {user_data.username} already exists.")
+    
+    password=utils.hash(user_data.password)
+
+    user=models.User(hashed_password=password,**user_data.model_dump())
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return user
+
+@router.get("/", response_model=List[schemas.UserResponse])
+def get_users(db:database.SessionLocal,current_user:models.User=Depends(rbac.require_roles(["admin"]))):
+    user=db.exec(select(models.User)).all()
+
+    return user
+
+@router.get("/me", response_model=schemas.UserResponse)
+def get_me(db:database.SessionLocal, current_user:models.User=Depends(oauth2.get_current_user)):
+    return current_user
+
+
+@router.get("/{id}", response_model=schemas.UserResponse)
+def get_a_user(db:database.SessionLocal, id:int, current_user:models.User=Depends(rbac.require_roles(["admin"]))):
+    user=db.get(models.User,id)
+    
+    if not user:
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"User with id {id} not found.")
+    
+    return user
+
+
+
+
+
