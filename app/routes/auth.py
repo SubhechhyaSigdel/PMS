@@ -13,10 +13,10 @@ def login(db:database.SessionLocal, user_credentials:OAuth2PasswordRequestForm=D
     user=db.exec(select(models.User).where(models.User.username==user_credentials.username)).first()
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with {user_credentials.username} not found.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials.")
     
     if not utils.verify(user_credentials.password, user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid Credentials.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials.")
     
     token= oauth2.get_token({"user_id":user.id})
 
@@ -24,4 +24,3 @@ def login(db:database.SessionLocal, user_credentials:OAuth2PasswordRequestForm=D
        "access_token":token,
        "token_type":"bearer"
     }
-

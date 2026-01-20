@@ -11,3 +11,4 @@ def verify(plain_password,hashed_password):
 
 def calculate_bill_total(reservation:models.reservation):
     total=(reservation.check_out - reservation.check_in).days * reservation.per_night_rate
+    return total

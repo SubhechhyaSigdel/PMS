@@ -1,22 +1,20 @@
 from sqlmodel import SQLModel
-from .models import Roles
 from . import models
 from typing import Optional
 
 class UserResponse(SQLModel):
     id: int
     username: str
-    role: Roles
+    role: str
 
 class UserCreate(SQLModel):
     username:str
     password:str
-    role: Roles
+    role: models.Roles
 
 class TokenResponse(SQLModel):
     access_token:str
     token_type:str
-
 
 class RoomCreate(SQLModel):
     room_number: int
@@ -28,9 +26,9 @@ class RoomCreate(SQLModel):
 class RoomStatusUpdate(SQLModel):
     status: models.RoomStatus 
 
-class RoomPatch(SQLModel):
-    room_number: Optional[int] = None
-    room_type: Optional[models.RoomType] = None
-    capacity: Optional[int] = None
-    price: Optional[float] = None
-    status: Optional[models.RoomStatus] = None
+class RoomUpdate(SQLModel):
+    room_number: int | None
+    room_type: models.RoomType |  None
+    capacity:int |  None
+    price: float |  None
+    status: models.RoomStatus | None

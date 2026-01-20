@@ -6,7 +6,6 @@ from datetime import datetime,timedelta
 from .database import SessionLocal
 from . import models
 
-
 oauth2_scheme=OAuth2PasswordBearer(tokenUrl="login")
 
 SECRET_KEY=settings.secret_key
@@ -41,4 +40,3 @@ def get_current_user(db:SessionLocal, token=Depends(oauth2_scheme)):
     user=db.get(models.User, id)
 
     return user
-
