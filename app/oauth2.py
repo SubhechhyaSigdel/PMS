@@ -1,10 +1,10 @@
 from fastapi import Depends, HTTPException,status
 from jose import JWTError, jwt
+from sqlmodel import Session
 from .config import settings
 from fastapi.security.oauth2 import OAuth2PasswordBearer
-from datetime import datetime,timedelta
-from .database import SessionLocal
-from . import models
+from datetime import datetime,timedelta, timezone
+from . import models,database
 
 oauth2_scheme=OAuth2PasswordBearer(tokenUrl="login")
 
@@ -13,30 +13,37 @@ ALGORITHM=settings.algorithm
 EXPIRATION_TIME=settings.expiration_time
 
 def get_token(data:dict):
-    expire=datetime.utcnow() + timedelta(minutes=EXPIRATION_TIME)
-    data.update({"exp":expire})
-    token=jwt.encode(data,SECRET_KEY,algorithm=ALGORITHM)
-    return token
+    to_encode=data.copy()
+
+    expire=datetime.now(timezone.utc) + timedelta(minutes=EXPIRATION_TIME)
+
+    to_encode.update({"exp":expire})
+    
+    encoded_jwt =jwt.encode(to_encode,SECRET_KEY,algorithm=ALGORITHM)
+    return encoded_jwt
 
 def verify_token(token:str, credentials_exception):
     try:
         data=jwt.decode(token,SECRET_KEY, algorithms=[ALGORITHM])
 
-        id=data["user_id"]
+        user_id: int = data.get("user_id")
 
-        if not id:
+        if not user_id:
             raise credentials_exception
         
     except JWTError:
         raise credentials_exception
     
-    return id
+    return user_id
 
-def get_current_user(db:SessionLocal, token=Depends(oauth2_scheme)):
+def get_current_user(db:Session =Depends(database.get_session),token=Depends(oauth2_scheme)):
     credentials_exception= HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Couldnot validate credentials",headers={"WWW-Authenticate":"Bearer"})
 
     id=verify_token(token, credentials_exception)
 
     user=db.get(models.User, id)
+
+    if not user:
+        raise credentials_exception
 
     return user
