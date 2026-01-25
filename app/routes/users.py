@@ -11,16 +11,16 @@ router=APIRouter(
 @router.post("/",response_model=schemas.UserResponse)
 def create_user(
     user_data:schemas.UserCreate,
-    db:database.SessionLocal, current_user:models.User=Depends(rbac.require_roles(["admin"]))):
+    db=Depends(database.get_session)): #current_user:models.User=Depends(rbac.require_roles(["admin"]))):
 
     existing_user=db.exec(select(models.User).where(models.User.username == user_data.username)).first()
 
     if existing_user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"User with username '{user_data.username}' already exists.")
     
-    password=utils.hash(user_data.password)
+    hashed_password=utils.hash(user_data.password)
 
-    user=models.User(hashed_password=password, **user_data.model_dump())
+    user=models.User(username=user_data.username, hashed_password=hashed_password, role=user_data.role)
 
     db.add(user)
     db.commit()

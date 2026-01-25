@@ -47,11 +47,11 @@ class UserBase(SQLModel):
 
 class UserCreate(UserBase):
     password: str
-    roles: models.Roles
+    role : models.Roles
 
 class UserResponse(UserBase):
     id:int
-    roles:List[str]
+    role :models.Roles
 
     class Config:
         from_attributes=True
@@ -68,6 +68,9 @@ class GuestCreate(GuestBase):
 
 class GuestResponse(GuestBase):
     id:int
+    name:str
+    phone:str
+    email:EmailStr
 
     class Config:
         from_attributes=True

@@ -44,19 +44,6 @@ class Room(SQLModel, table=True):
     __table_args__=(CheckConstraint("capacity > 0",  name="check_capacity_more_than_zero"),
                     CheckConstraint("price > 0", name="check_price_more_than_zero"))
 
-#Table : Guests
-
-class Guest(SQLModel, table=True):
-    __tablename__="guests"
-
-    id: int | None=Field(default=None, primary_key=True)
-    name: str
-    phone: str
-    email: EmailStr = Field(unique=True)
-
-    reservations: List["Reservation"] = Relationship(
-        back_populates="guest")
-
 #Table : reservation
 
 class Reservation(SQLModel, table=True):
@@ -113,5 +100,14 @@ class User(SQLModel, table=True):
 
     id: int | None=Field(default=None, primary_key=True)
     username: str = Field(unique=True)
-    password:str
-    role: Roles 
+    hashed_password:str
+    role: Roles
+
+class Guest(SQLModel, table=True):
+
+    __tablename__= "guests"
+    id:int | None = Field(default=None, primary_key=True)
+    name: str
+    phone:str
+    email: str = Field(unique=True)
+    reservations: List["Reservation"]=Relationship(back_populates="guest")

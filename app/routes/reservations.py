@@ -11,9 +11,9 @@ router=APIRouter(
 
 #create reservation
 
-@router.post("/", response_model=models.Reservation)
+@router.post("/", response_model=schemas.ReservationResponse)
 def create_reservation(
-    reservation_data: models.Reservation, 
+    reservation_data: schemas.ReservationCreate, 
     db: Session = Depends(database.get_session), current_user: models.User= Depends(rbac.require_roles(["admin", "staff"]))):
 
     room = db.get(models.Room, reservation_data.room_id)
@@ -26,14 +26,14 @@ def create_reservation(
     
 
     #validate dates
-    if reservation_data.check_out >= reservation_data.check_in:
+    if reservation_data.check_out <= reservation_data.check_in:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Check-out date must be after check-in date.")
     
     #validate guest exists
     guest= db.get(models.Guest, reservation_data.guest_id)
 
     if not guest:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Guest with id {reservation_data.guest_id} not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Guest with id {reservation_data.guest_id} not found. Please create the guest first.")
     
     per_night_rate = room.price
 
@@ -57,11 +57,11 @@ def create_reservation(
         db.commit()
         db.refresh(room)
 
-        return reservation
+    return reservation
     
 #Get all reservations
 
-@router.get("/", response_model=List[models.Reservation])
+@router.get("/", response_model=List[schemas.ReservationResponse])
 def get_all_reservations(
     db: Session = Depends(database.get_session),
     current_user: models.User = Depends(oauth2.get_current_user)):
@@ -76,7 +76,7 @@ def get_all_reservations(
     return reservations
 
 #get reservation by id 
-@router.get("/{reservation_id}", response_model=models.Reservation)
+@router.get("/{reservation_id}", response_model=schemas.ReservationResponse)
 def get_reservation_by_id(
     reservation_id:int,
     db: Session = Depends(database.get_session),
@@ -90,7 +90,7 @@ def get_reservation_by_id(
     return reservation
 
 #Update reservation status
-@router.patch("/{reservation_id}/status", response_model=models.Reservation)
+@router.patch("/{reservation_id}/status", response_model=schemas.ReservationResponse)
 def update_reservation_status(
     reservation_id : int,
     new_status: models.ReservationStatus,
@@ -102,6 +102,7 @@ def update_reservation_status(
     if not reservation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"Reservation with id {reservation_id} not found.")
     
+    #update status
     reservation.status = new_status
     db.commit()
     db.refresh(reservation)
@@ -109,11 +110,12 @@ def update_reservation_status(
     #update room status based on reservation
 
     room= db.get(models.Room, reservation.room_id)
+
     if new_status == models.ReservationStatus.CHECKED_IN:
-        room_status = models.RoomStatus.OCCUPIED
+        room.status = models.RoomStatus.OCCUPIED
 
     elif new_status in [models.ReservationStatus.CHECKED_OUT, models.ReservationStatus.CANCELLED]:
-        room_status= models.RoomStatus.AVAILABLE
+        room.status= models.RoomStatus.AVAILABLE
 
     db.commit()
     db.refresh(room)

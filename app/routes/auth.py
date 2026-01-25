@@ -9,7 +9,7 @@ router=APIRouter(
 )
 
 @router.post("/", response_model=schemas.TokenResponse)
-def login(db:database.SessionLocal, user_credentials:OAuth2PasswordRequestForm=Depends()):
+def login(db=Depends(database.get_session), user_credentials:OAuth2PasswordRequestForm=Depends()):
     user=db.exec(select(models.User).where(models.User.username==user_credentials.username)).first()
 
     if not user:
